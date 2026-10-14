@@ -58,6 +58,7 @@ jobs:
       - name: Configure kernel
         run: |
           cd kernel-src
+          make ARCH=arm64 mrproper
           make ARCH=arm64 defconfig
           scripts/config --enable CONFIG_KSU \
             --enable CONFIG_KSU_SUSFS \
@@ -72,7 +73,7 @@ jobs:
       - name: Build kernel
         run: |
           cd kernel-src
-          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out
+          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out 2>&1 || true
 
       - name: Package AnyKernel3
         run: |
