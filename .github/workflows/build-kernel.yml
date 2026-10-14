@@ -30,10 +30,9 @@ jobs:
 
       - name: Clone SUSFS
         run: |
-          git clone https://gitlab.com/susfs4android/susfs4android.git susfs-source
+          git clone https://gitlab.com/susfs4ksu/susfs4ksu.git susfs-source
           cd susfs-source
-          BRANCH=$(git branch -r | grep "5.10" | head -1 | sed 's/.*\///')
-          if [ -n "$BRANCH" ]; then git checkout "$BRANCH"; fi
+          git checkout main
 
       - name: Apply SUSFS patches
         run: |
