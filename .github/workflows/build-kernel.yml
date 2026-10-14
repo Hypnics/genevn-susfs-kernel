@@ -30,7 +30,7 @@ jobs:
 
       - name: Clone SUSFS
         run: |
-          git clone https://gitlab.com/susfs4ksu/susfs4ksu.git susfs-source
+          git clone https://gitlab.com/simonpunk/susfs4ksu.git susfs-source
           cd susfs-source
           git checkout main
 
