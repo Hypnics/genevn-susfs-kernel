@@ -1,0 +1,94 @@
+name: Build SUSFS Kernel for genevn
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential bc flex bison libssl-dev libncurses-dev \
+            zlib1g-dev git curl jq python3 \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu lld llvm \
+            ccache device-tree-compiler repo
+
+      - name: Maximize build space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          sudo docker image prune --all --force
+
+      - name: Clone Motorola kernel source
+        run: |
+          git clone --depth 1 --branch MMI-T1TGNS33.60-41-2-7 \
+            https://github.com/MotorolaMobilityLLC/kernel-msm.git kernel-src
+
+      - name: Clone SUSFS
+        run: |
+          git clone https://gitlab.com/susfs4android/susfs4android.git susfs-source
+          cd susfs-source
+          BRANCH=$(git branch -r | grep "5.10" | head -1 | sed 's/.*\///')
+          if [ -n "$BRANCH" ]; then git checkout "$BRANCH"; fi
+
+      - name: Apply SUSFS patches
+        run: |
+          cd kernel-src
+          PATCH_FILE=$(find ../susfs-source -name "*.patch" | grep -iE "5\.10|gki" | head -1)
+          if [ -n "$PATCH_FILE" ]; then
+            patch -p1 < "$PATCH_FILE" || true
+            echo "SUSFS patch applied: $PATCH_FILE"
+          fi
+          find ../susfs-source -type f -name "susfs.c" | while read f; do
+            DIR=$(dirname "$f")
+            REL=${DIR#../susfs-source/}
+            mkdir -p "$REL" 2>/dev/null
+            cp -r "$DIR"/* "$REL/" 2>/dev/null
+          done
+
+      - name: Add KernelSU-Next
+        run: |
+          cd kernel-src
+          curl -LSs "https://github.com/KernelSU-Next/KernelSU-Next/archive/refs/heads/main.tar.gz" -o ksu.tar.gz
+          tar xf ksu.tar.gz
+          mv KernelSU-Next-main KernelSU
+          echo "obj-y += KernelSU/" >> Makefile
+
+      - name: Configure kernel
+        run: |
+          cd kernel-src
+          make ARCH=arm64 defconfig
+          scripts/config --enable CONFIG_KSU \
+            --enable CONFIG_KSU_SUSFS \
+            --enable CONFIG_KSU_SUSFS_SUS_PATH \
+            --enable CONFIG_KSU_SUSFS_SUS_MOUNT \
+            --enable CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT \
+            --enable CONFIG_KSU_SUSFS_AUTO_ADD_SUS_UMOUNT_ALL \
+            --enable CONFIG_KSU_SUSFS_ENABLE_LOG \
+            --enable CONFIG_KSU_MANUAL_HOOK
+          make ARCH=arm64 olddefconfig
+
+      - name: Build kernel
+        run: |
+          cd kernel-src
+          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out
+
+      - name: Package AnyKernel3
+        run: |
+          git clone --depth 1 https://github.com/osm0sis/AnyKernel3 anykernel
+          rm -rf anykernel/.git
+          cp kernel-src/out/arch/arm64/boot/Image.gz anykernel/Image
+          cd anykernel
+          zip -r9 ../susfs-kernel-genevn-AnyKernel3.zip *
+
+      - name: Upload kernel
+        uses: actions/upload-artifact@v4
+        with:
+          name: susfs-kernel-genevn
+          path: |
+            susfs-kernel-genevn-AnyKernel3.zip
+            kernel-src/out/arch/arm64/boot/Image
