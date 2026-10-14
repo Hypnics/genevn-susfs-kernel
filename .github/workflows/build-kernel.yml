@@ -52,9 +52,7 @@ jobs:
       - name: Add KernelSU-Next
         run: |
           cd kernel-src
-          curl -LSs "https://github.com/KernelSU-Next/KernelSU-Next/archive/refs/heads/main.tar.gz" -o ksu.tar.gz
-          tar xf ksu.tar.gz
-          mv KernelSU-Next-main KernelSU
+          git clone --depth 1 https://github.com/KernelSU-Next/KernelSU-Next.git KernelSU
           echo "obj-y += KernelSU/" >> Makefile
 
       - name: Configure kernel
