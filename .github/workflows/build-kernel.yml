@@ -73,13 +73,13 @@ jobs:
       - name: Build kernel
         run: |
           cd kernel-src
-          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=out 2>&1 || true
+          make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- 2>&1 || true
 
       - name: Package AnyKernel3
         run: |
           git clone --depth 1 https://github.com/osm0sis/AnyKernel3 anykernel
           rm -rf anykernel/.git
-          cp kernel-src/out/arch/arm64/boot/Image.gz anykernel/Image
+          cp kernel-src/arch/arm64/boot/Image.gz anykernel/Image
           cd anykernel
           zip -r9 ../susfs-kernel-genevn-AnyKernel3.zip *
 
@@ -89,4 +89,4 @@ jobs:
           name: susfs-kernel-genevn
           path: |
             susfs-kernel-genevn-AnyKernel3.zip
-            kernel-src/out/arch/arm64/boot/Image
+            kernel-src/arch/arm64/boot/Image
