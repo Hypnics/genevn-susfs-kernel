@@ -79,7 +79,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/osm0sis/AnyKernel3 anykernel
           rm -rf anykernel/.git
-          cp kernel-src/arch/arm64/boot/Image.gz anykernel/Image
+          cp kernel-src/arch/arm64/boot/Image.gz anykernel/Image 2>/dev/null || cp kernel-src/arch/arm64/boot/Image anykernel/Image
           cd anykernel
           zip -r9 ../susfs-kernel-genevn-AnyKernel3.zip *
 
